@@ -1,0 +1,17 @@
+{
+  "name": "Phở Bò Mộc",
+  "short_name": "Phở Bò",
+  "description": "Đặt phở bò nóng giao tận nơi.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#fff8ef",
+  "theme_color": "#9f2f19",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

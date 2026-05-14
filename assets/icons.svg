@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Phở Mộc">
+  <rect width="128" height="128" rx="24" fill="#9f2f19"/>
+  <path d="M24 64c4 27 20 42 40 42s36-15 40-42H24Z" fill="#fff8ef"/>
+  <path d="M31 64h66" stroke="#e6ad3d" stroke-width="7" stroke-linecap="round"/>
+  <path d="M43 48c-8-11 9-15 2-27M63 48c-8-11 9-15 2-27M83 48c-8-11 9-15 2-27" fill="none" stroke="#fff8ef" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="49" cy="74" r="6" fill="#1d6b45"/>
+  <circle cx="67" cy="74" r="6" fill="#1d6b45"/>
+  <circle cx="85" cy="74" r="6" fill="#1d6b45"/>
+</svg>
