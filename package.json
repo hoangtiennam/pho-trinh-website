@@ -1,0 +1,8 @@
+{
+  "name": "pho-trinh-website",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "resend": "^6.5.0"
+  }
+}

@@ -541,12 +541,13 @@ function renderLastOrder() {
   }
 }
 
-function showOrderMessage(order) {
+function showOrderMessage(order, emailSent = false) {
   const message = document.querySelector("#orderMessage");
+  const emailStatus = emailSent ? " Email đã được gửi về quán." : " Đơn đã lưu trên trình duyệt, nhưng email chưa gửi được.";
   message.textContent =
     order.payment === "Chuyển khoản ngân hàng"
-      ? `Đã ghi nhận đơn hàng mẫu. Vui lòng chuyển khoản ${money(order.total)} với nội dung: ${order.transferNote}.`
-      : "Đã ghi nhận đơn hàng mẫu. Dữ liệu được lưu trên trình duyệt.";
+      ? `Đã ghi nhận đơn hàng. Vui lòng chuyển khoản ${money(order.total)} với nội dung: ${order.transferNote}.${emailStatus}`
+      : `Đã ghi nhận đơn hàng.${emailStatus}`;
 
   if (order.payment === "Chuyển khoản ngân hàng") {
     const br = document.createElement("br");
@@ -559,7 +560,22 @@ function showOrderMessage(order) {
   }
 }
 
-function handleCheckout(event) {
+async function sendOrderEmail(order) {
+  const response = await fetch("/api/send-order", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(order),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || "Không gửi được email đơn hàng.");
+  }
+}
+
+async function handleCheckout(event) {
   event.preventDefault();
   const message = document.querySelector("#orderMessage");
 
@@ -601,13 +617,23 @@ function handleCheckout(event) {
   };
 
   localStorage.setItem("pho-trinh-last-order", JSON.stringify(order));
+  message.textContent = "Đang gửi đơn hàng...";
+  let emailSent = false;
+
+  try {
+    await sendOrderEmail(order);
+    emailSent = true;
+  } catch (error) {
+    console.error(error);
+  }
+
   cart = [];
   renderCart();
   renderLastOrder();
   event.currentTarget.reset();
   updateFulfillmentUI();
   updateTransferPanel();
-  showOrderMessage(order);
+  showOrderMessage(order, emailSent);
 }
 
 document.addEventListener("click", (event) => {
