@@ -457,10 +457,45 @@ h2 {
   font-size: 0.92rem;
 }
 
+.cart-toppings {
+  display: grid;
+  gap: 7px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+}
+
+.cart-topping-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.cart-topping-row span {
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 750;
+}
+
+.cart-topping-row small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .qty-controls {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+.qty-controls.compact {
+  gap: 6px;
+}
+
+.qty-controls.compact .icon-btn {
+  width: 30px;
+  height: 30px;
 }
 
 .icon-btn {
@@ -551,6 +586,10 @@ h2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.delivery-tools[hidden] {
+  display: none;
 }
 
 .delivery-status {

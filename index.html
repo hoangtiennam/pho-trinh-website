@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="vi">
   <head>
     <meta charset="utf-8" />
@@ -7,7 +7,7 @@
     <title>Phở Trịnh - Phở Bò Gia Truyền, Vị Ngon Còn Mãi</title>
     <meta
       name="description"
-      content="Phở Trịnh - phở bò gia truyền tại Đống Đa, Hà Nội. Xem menu, đặt món, gọi điện và tìm vị trí cửa hàng trên bản đồ."
+      content="Phở Trịnh - phở bò gia truyền tại Đống Đa, Hà Nội. Xem menu, đặt món, thanh toán VietQR và tìm vị trí cửa hàng trên bản đồ."
     />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
@@ -74,15 +74,23 @@
         <div class="about-layout">
           <article class="about-copy">
             <p>
-             Phở là một món ăn quen thuộc, là thứ quà của Hà Nội. Không phải chỉ Hà Nội mới có phở nhưng phở Hà Nội mới ngon. Phở Hà Nội truyền thống phải được nấu với thịt bò, nước dùng trong, thanh ngọt, bánh phở mềm dẻo mà không nát, bát phở dậy hương gừng, quế, hồi… Đặc biệt, phở Hà Nội xưa không thể thiếu một nguyên liệu tạo vị ngọt đó là sá sùng. Phở Trịnh - Phở bò gia truyền - Vị ngon còn mãi! 
+              Phở là một món ăn quen thuộc, là thức quà của Hà Nội. Không phải chỉ Hà Nội
+              mới có phở nhưng phở Hà Nội mới ngon. Phở Hà Nội truyền thống phải được nấu
+              với thịt bò, nước dùng trong, thanh ngọt, bánh phở mềm dẻo mà không nát,
+              bát phở dậy hương gừng, quế, hồi. Đặc biệt, phở Hà Nội xưa không thể thiếu
+              một nguyên liệu tạo vị ngọt đó là sá sùng. Phở Trịnh - Phở bò gia truyền -
+              Vị ngon còn mãi!
             </p>
             <p>
-              Mang hương vị truyền thống là thịt bò, tuyển chọn từ nạm bò hoặc gầu bò tươi ngon, đỏ lựng và được thái mỏng điệu nghệ; thịt nhúng vào nước dùng tạo nên vị ngọt, thịt mềm, không dai. Bánh phở trắng trong, mềm dẻo, nước dùng nhanh ngấm vào sợi phở, tạo nên hương vị đậm đà, hòa hợp. Phở ở Phở Trịnh không những giữ được hương vị truyền thống mà còn mang nhưng nét riêng đặc biệt.
+              Mang hương vị truyền thống là thịt bò tuyển chọn từ nạm bò hoặc gầu bò tươi
+              ngon, đỏ lựng và được thái mỏng điệu nghệ. Thịt nhúng vào nước dùng tạo nên
+              vị ngọt, thịt mềm, không dai. Bánh phở trắng trong, mềm dẻo, nước dùng nhanh
+              ngấm vào sợi phở, tạo nên hương vị đậm đà, hòa hợp.
             </p>
- <p>
-               Kính mời Quý khách đến nhà hàng Phở Trịnh tại Số 36 Ngõ 26 Phố Võ Văn Dũng, Q. Đống Đa, HN để thưởng thức món ăn tuyệt vời này.
+            <p>
+              Kính mời Quý khách đến nhà hàng Phở Trịnh tại Số 36 Ngõ 26 Phố Võ Văn Dũng,
+              Q. Đống Đa, Hà Nội để thưởng thức món ăn tuyệt vời này.
             </p>
-
           </article>
           <aside class="about-highlights" aria-label="Điểm nổi bật của Phở Trịnh">
             <div>
@@ -132,12 +140,7 @@
           </div>
           <div class="quick-actions" aria-label="Đặt nhanh">
             <a class="button call-button" href="tel:0915567393">Gọi đặt món</a>
-            <a
-              class="button zalo-button"
-              href="https://zalo.me/0915567393"
-              target="_blank"
-              rel="noreferrer"
-            >
+            <a class="button zalo-button" href="https://zalo.me/0915567393" target="_blank" rel="noreferrer">
               Nhắn Zalo
             </a>
           </div>
@@ -148,17 +151,19 @@
           <h2>Thông tin giao hàng</h2>
           <label>
             Họ tên
-            <input name="name" autocomplete="name" required placeholder="Nguyễn Văn A" />
+            <input name="name" autocomplete="name" required placeholder="Nhập tên quý khách" />
           </label>
           <label>
             Số điện thoại
-            <input
-              name="phone"
-              inputmode="tel"
-              autocomplete="tel"
-              required
-              placeholder="0915567393"
-            />
+            <input name="phone" inputmode="tel" autocomplete="tel" required placeholder="Số điện thoại" />
+          </label>
+          <label>
+            Hình thức nhận món
+            <select name="fulfillment" id="fulfillmentMethod">
+              <option value="restaurant-delivery">Quán giao hàng</option>
+              <option value="customer-ship">Khách tự đặt ship</option>
+              <option value="pickup">Khách tự đến lấy</option>
+            </select>
           </label>
           <label>
             Địa chỉ
@@ -173,18 +178,18 @@
             </button>
           </div>
           <p class="delivery-status" id="deliveryDistance" role="status">
-            Nhập địa chỉ hoặc lấy vị trí để tính phí ship. Dưới 4km: 25.000đ, từ 4km: 6.000đ/km.
+            Nhập địa chỉ hoặc lấy vị trí để tính phí ship. Giờ thường: dưới 4km 25.000đ, từ 4km 6.000đ/km.
+            11:00-13:00: dưới 4km 35.000đ, từ 4km 8.000đ/km.
           </p>
           <label>
             Thanh toán
             <select name="payment">
-              
               <option value="bank">Chuyển khoản ngân hàng</option>
-	       <option value="cash">Tiền mặt khi nhận hàng</option>
-                  </select>
+              <option value="cash">Tiền mặt khi nhận hàng</option>
+            </select>
           </label>
           <section class="transfer-panel" id="bankTransferPanel" hidden aria-label="Thông tin chuyển khoản">
-            <div class="qr-template" aria-label="QR chuyển khoản mẫu">
+            <div class="qr-template" aria-label="QR chuyển khoản VietQR">
               <img id="transferQr" src="" alt="QR chuyển khoản VietQR" />
             </div>
             <div class="transfer-info">
@@ -192,7 +197,7 @@
               <dl>
                 <div>
                   <dt>Ngân hàng</dt>
-                  <dd>Ngân hàng TpBank</dd>
+                  <dd>Tien Phong Bank</dd>
                 </div>
                 <div>
                   <dt>Số tài khoản</dt>
@@ -204,14 +209,13 @@
                 </div>
                 <div>
                   <dt>Số tiền</dt>
-                  <dd id="transferAmount">0đ</dd>
+                  <dd id="transferAmount">Theo thông tin bên dưới đơn</dd>
                 </div>
                 <div>
                   <dt>Nội dung</dt>
                   <dd id="transferNote">PHOTRINH</dd>
                 </div>
               </dl>
-              
             </div>
           </section>
           <button class="button primary full" type="submit">Gửi đơn hàng</button>
@@ -269,3 +273,4 @@
     <script src="app.js"></script>
   </body>
 </html>
+

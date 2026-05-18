@@ -1,7 +1,7 @@
-{
-  "name": "Phở Bò Mộc",
-  "short_name": "Phở Bò",
-  "description": "Đặt phở bò nóng giao tận nơi.",
+﻿{
+  "name": "Phở Trịnh",
+  "short_name": "Phở Trịnh",
+  "description": "Đặt phở bò gia truyền Phở Trịnh, thanh toán VietQR và tính phí giao hàng.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#fff8ef",
@@ -15,3 +15,4 @@
     }
   ]
 }
+

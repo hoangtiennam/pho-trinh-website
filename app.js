@@ -1,4 +1,4 @@
-const menu = [
+﻿const menu = [
   {
     id: "pho-tai",
     name: "Phở bò tái",
@@ -49,8 +49,8 @@ const sizeOptions = [
 ];
 
 const toppingOptions = [
-  { label: "Quẩy", value: "quay", price: 8000 },
-  { label: "Trứng", value: "trung", price: 8000 },
+  { label: "Quẩy(2 chiếc)", value: "quay", price: 5000 },
+  { label: "Trứng(1 quả)", value: "trung", price: 8000 },
 ];
 
 let cart = [];
@@ -73,6 +73,10 @@ const storeAddress = "Số 36, ngõ 26, phố Võ Văn Dũng, Đống Đa, Hà N
 const shippingRatePerKm = 6000;
 const minimumShippingFee = 25000;
 const minimumShippingDistanceKm = 4;
+const peakShippingRatePerKm = 8000;
+const peakMinimumShippingFee = 35000;
+const peakStartHour = 11;
+const peakEndHour = 13;
 let deliveryDistanceKm = 0;
 
 function money(value) {
@@ -83,10 +87,50 @@ function getCartTotal() {
   return cart.reduce((sum, item) => sum + item.unitPrice * item.qty, 0);
 }
 
+function getFulfillmentMethod() {
+  return document.querySelector('[name="fulfillment"]')?.value || "restaurant-delivery";
+}
+
+function isRestaurantDelivery() {
+  return getFulfillmentMethod() === "restaurant-delivery";
+}
+
+function getHanoiHour(date = new Date()) {
+  return Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Bangkok",
+      hour: "2-digit",
+      hour12: false,
+    }).format(date)
+  );
+}
+
+function isPeakShippingTime(date = new Date()) {
+  const hour = getHanoiHour(date);
+  return hour >= peakStartHour && hour < peakEndHour;
+}
+
+function getShippingPricing() {
+  if (isPeakShippingTime()) {
+    return {
+      ratePerKm: peakShippingRatePerKm,
+      minimumFee: peakMinimumShippingFee,
+      label: "Giờ cao điểm",
+    };
+  }
+
+  return {
+    ratePerKm: shippingRatePerKm,
+    minimumFee: minimumShippingFee,
+    label: "Giờ thường",
+  };
+}
+
 function getShippingFee() {
-  if (!cart.length || !deliveryDistanceKm) return 0;
-  if (deliveryDistanceKm < minimumShippingDistanceKm) return minimumShippingFee;
-  return Math.ceil(deliveryDistanceKm) * shippingRatePerKm;
+  if (!isRestaurantDelivery() || !cart.length || !deliveryDistanceKm) return 0;
+  const pricing = getShippingPricing();
+  if (deliveryDistanceKm < minimumShippingDistanceKm) return pricing.minimumFee;
+  return Math.ceil(deliveryDistanceKm) * pricing.ratePerKm;
 }
 
 function getOrderTotal() {
@@ -111,7 +155,8 @@ function setDeliveryDistance(distanceKm, sourceLabel) {
   const status = document.querySelector("#deliveryDistance");
   deliveryDistanceKm = Number(distanceKm.toFixed(2));
   if (status) {
-    status.textContent = `${sourceLabel}: khoảng ${deliveryDistanceKm.toFixed(2)} km từ quán. Phí ship ${money(getShippingFee())}.`;
+    const pricing = getShippingPricing();
+    status.textContent = `${sourceLabel}: khoảng ${deliveryDistanceKm.toFixed(2)} km từ quán. ${pricing.label}, phí ship ${money(getShippingFee())}.`;
   }
   renderCart();
 }
@@ -125,6 +170,33 @@ function clearDeliveryDistance(message) {
   deliveryDistanceKm = 0;
   setDeliveryStatus(message);
   renderCart();
+}
+
+function updateFulfillmentUI() {
+  const address = document.querySelector('[name="address"]');
+  const deliveryTools = document.querySelector(".delivery-tools");
+  const restaurantDelivery = isRestaurantDelivery();
+
+  if (address) {
+    address.required = restaurantDelivery;
+    address.disabled = false;
+    address.placeholder = restaurantDelivery
+      ? "Số nhà, đường, phường/xã"
+      : "Không bắt buộc nếu khách tự đặt ship hoặc tự đến lấy";
+  }
+
+  if (deliveryTools) {
+    deliveryTools.hidden = !restaurantDelivery;
+  }
+
+  if (!restaurantDelivery) {
+    clearDeliveryDistance("Khách tự đặt ship hoặc tự đến lấy: không tính phí ship.");
+  } else if (!deliveryDistanceKm) {
+    setDeliveryStatus(
+      "Nhập địa chỉ hoặc lấy vị trí để tính phí ship. Giờ thường: dưới 4km 25.000đ, từ 4km 6.000đ/km. 11:00-13:00: dưới 4km 35.000đ, từ 4km 8.000đ/km."
+    );
+    renderCart();
+  }
 }
 
 async function geocodeAddress(address) {
@@ -152,6 +224,11 @@ async function geocodeAddress(address) {
 }
 
 async function calculateDistanceFromAddress() {
+  if (!isRestaurantDelivery()) {
+    clearDeliveryDistance("Khách tự đặt ship hoặc tự đến lấy: không tính phí ship.");
+    return;
+  }
+
   const address = document.querySelector('[name="address"]').value.trim();
   if (!address) {
     setDeliveryStatus("Vui lòng nhập địa chỉ giao hàng trước khi tính phí ship.");
@@ -168,6 +245,11 @@ async function calculateDistanceFromAddress() {
 }
 
 function calculateDistanceFromCurrentLocation() {
+  if (!isRestaurantDelivery()) {
+    clearDeliveryDistance("Khách tự đặt ship hoặc tự đến lấy: không tính phí ship.");
+    return;
+  }
+
   if (!navigator.geolocation) {
     setDeliveryStatus("Trình duyệt này không hỗ trợ lấy vị trí hiện tại.");
     return;
@@ -302,6 +384,53 @@ function getToppingText(toppings) {
     .join(", ");
 }
 
+function normalizeToppings(toppings) {
+  return toppingOptions
+    .map((option) => {
+      const existing = toppings.find((topping) => topping.value === option.value);
+      const qty = Math.max(0, Number(existing?.qty || 0));
+      return {
+        ...option,
+        qty,
+        total: option.price * qty,
+      };
+    })
+    .filter((topping) => topping.qty > 0);
+}
+
+function getItemBasePrice(item) {
+  const menuItem = menu.find((entry) => entry.id === item.id);
+  const size = getOption(sizeOptions, item.size);
+  return (menuItem?.price || 0) + size.delta;
+}
+
+function updateCartItemTopping(key, toppingValue, delta) {
+  cart = cart.map((item) => {
+    if (item.key !== key) return item;
+
+    const option = toppingOptions.find((entry) => entry.value === toppingValue);
+    if (!option) return item;
+
+    const currentToppings = normalizeToppings(item.toppings || []);
+    const current = currentToppings.find((topping) => topping.value === toppingValue);
+    const nextQty = Math.max(0, Number(current?.qty || 0) + delta);
+    const nextToppings = normalizeToppings([
+      ...currentToppings.filter((topping) => topping.value !== toppingValue),
+      { ...option, qty: nextQty },
+    ]);
+    const toppingTotal = nextToppings.reduce((sum, topping) => sum + topping.total, 0);
+
+    return {
+      ...item,
+      toppings: nextToppings,
+      toppingText: getToppingText(nextToppings),
+      unitPrice: getItemBasePrice(item) + toppingTotal,
+    };
+  });
+
+  renderCart();
+}
+
 function addToCart(id) {
   const item = menu.find((entry) => entry.id === id);
   const sizeValue = document.querySelector(`[data-size="${id}"]`).value;
@@ -357,6 +486,24 @@ function renderCart() {
             <div class="cart-meta">
               <strong>${item.name}</strong>
               <span>${item.size}, ${item.toppingText} · ${money(item.unitPrice)}</span>
+              <div class="cart-toppings" aria-label="Sửa topping cho ${item.name}">
+                ${toppingOptions
+                  .map((option) => {
+                    const current = (item.toppings || []).find((topping) => topping.value === option.value);
+                    const qty = current?.qty || 0;
+                    return `
+                      <div class="cart-topping-row">
+                        <span>${option.label} <small>${money(option.price)}</small></span>
+                        <div class="qty-controls compact">
+                          <button class="icon-btn" type="button" data-topping-dec="${item.key}" data-topping-value="${option.value}" aria-label="Giảm ${option.label}">-</button>
+                          <strong>${qty}</strong>
+                          <button class="icon-btn" type="button" data-topping-inc="${item.key}" data-topping-value="${option.value}" aria-label="Tăng ${option.label}">+</button>
+                        </div>
+                      </div>
+                    `;
+                  })
+                  .join("")}
+              </div>
             </div>
             <div class="qty-controls" aria-label="Số lượng ${item.name}">
               <button class="icon-btn" type="button" data-dec="${item.key}" aria-label="Giảm">-</button>
@@ -371,7 +518,8 @@ function renderCart() {
 
   cartTotal.textContent = money(subtotal);
   shippingFeeDisplay.textContent = money(deliveryFee);
-  shippingDistance.textContent = deliveryDistanceKm ? `(${deliveryDistanceKm.toFixed(2)} km)` : "";
+  shippingDistance.textContent =
+    isRestaurantDelivery() && deliveryDistanceKm ? `(${deliveryDistanceKm.toFixed(2)} km)` : "";
   grandTotal.textContent = money(total);
   updateTransferPanel();
 }
@@ -397,7 +545,7 @@ function showOrderMessage(order) {
   const message = document.querySelector("#orderMessage");
   message.textContent =
     order.payment === "Chuyển khoản ngân hàng"
-      ? `Đã ghi nhận đơn hàng mẫu. Vui lòng chuyển khoản ${money(order.total)} với nội dung: ${order.customer}.`
+      ? `Đã ghi nhận đơn hàng mẫu. Vui lòng chuyển khoản ${money(order.total)} với nội dung: ${order.transferNote}.`
       : "Đã ghi nhận đơn hàng mẫu. Dữ liệu được lưu trên trình duyệt.";
 
   if (order.payment === "Chuyển khoản ngân hàng") {
@@ -424,11 +572,15 @@ function handleCheckout(event) {
   const subtotal = getCartTotal();
   const deliveryFee = getShippingFee();
   const total = getOrderTotal();
+  const shippingPricing = getShippingPricing();
   const paymentSelect = event.currentTarget.elements.payment;
+  const fulfillmentSelect = event.currentTarget.elements.fulfillment;
   const order = {
     customer: form.get("name"),
     phone: form.get("phone"),
     address: form.get("address"),
+    fulfillment: fulfillmentSelect.options[fulfillmentSelect.selectedIndex].text,
+    fulfillmentValue: form.get("fulfillment"),
     payment: paymentSelect.options[paymentSelect.selectedIndex].text,
     transferNote: getTransferNote(),
     bankId,
@@ -438,8 +590,11 @@ function handleCheckout(event) {
     subtotal,
     shippingFee: deliveryFee,
     shippingDistanceKm: deliveryDistanceKm,
-    shippingRatePerKm,
+    shippingRatePerKm: shippingPricing.ratePerKm,
     minimumShippingFee,
+    appliedMinimumShippingFee: shippingPricing.minimumFee,
+    shippingPricingLabel: shippingPricing.label,
+    isPeakShippingTime: isPeakShippingTime(),
     minimumShippingDistanceKm,
     storeAddress,
     total,
@@ -450,6 +605,7 @@ function handleCheckout(event) {
   renderCart();
   renderLastOrder();
   event.currentTarget.reset();
+  updateFulfillmentUI();
   updateTransferPanel();
   showOrderMessage(order);
 }
@@ -458,19 +614,28 @@ document.addEventListener("click", (event) => {
   const addId = event.target.closest("[data-add]")?.dataset.add;
   const incKey = event.target.closest("[data-inc]")?.dataset.inc;
   const decKey = event.target.closest("[data-dec]")?.dataset.dec;
+  const toppingIncButton = event.target.closest("[data-topping-inc]");
+  const toppingDecButton = event.target.closest("[data-topping-dec]");
 
   if (addId) addToCart(addId);
   if (incKey) updateQty(incKey, 1);
   if (decKey) updateQty(decKey, -1);
+  if (toppingIncButton) {
+    updateCartItemTopping(toppingIncButton.dataset.toppingInc, toppingIncButton.dataset.toppingValue, 1);
+  }
+  if (toppingDecButton) {
+    updateCartItemTopping(toppingDecButton.dataset.toppingDec, toppingDecButton.dataset.toppingValue, -1);
+  }
 });
 
 document.querySelector("#checkoutForm").addEventListener("submit", handleCheckout);
 document.querySelector('[name="payment"]').addEventListener("change", updateTransferPanel);
 document.querySelector('[name="phone"]').addEventListener("input", updateTransferPanel);
+document.querySelector('[name="fulfillment"]').addEventListener("change", updateFulfillmentUI);
 document.querySelector("#useCurrentLocation").addEventListener("click", calculateDistanceFromCurrentLocation);
 document.querySelector("#calculateAddressDistance").addEventListener("click", calculateDistanceFromAddress);
 document.querySelector('[name="address"]').addEventListener("input", () => {
-  if (deliveryDistanceKm) {
+  if (isRestaurantDelivery() && deliveryDistanceKm) {
     clearDeliveryDistance('Địa chỉ đã thay đổi. Bấm "Tính từ địa chỉ" để cập nhật phí ship.');
   }
 });
@@ -484,4 +649,5 @@ if ("serviceWorker" in navigator) {
 renderMenu();
 renderCart();
 renderLastOrder();
+updateFulfillmentUI();
 updateTransferPanel();
