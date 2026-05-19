@@ -544,7 +544,7 @@ function renderLastOrder() {
 function showOrderMessage(order, emailSent = false, emailError = "") {
   const message = document.querySelector("#orderMessage");
   const emailStatus = emailSent
-    ? " Email đã được gửi về quán."
+    ? " Email đã được gửi về Phở Trịnh."
     : ` Đơn đã lưu trên trình duyệt, nhưng email chưa gửi được${emailError ? `: ${emailError}` : "."}`;
   message.textContent =
     order.payment === "Chuyển khoản ngân hàng"
@@ -623,7 +623,7 @@ async function handleCheckout(event) {
   };
 
   localStorage.setItem("pho-trinh-last-order", JSON.stringify(order));
-  message.textContent = "Đang gửi đơn hàng...";
+  message.textContent = "Đang xác nhận đơn hàng...";
   let emailSent = false;
   let emailError = "";
 
