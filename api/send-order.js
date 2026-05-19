@@ -2,7 +2,7 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const TO_EMAIL = "photrinh.vovandung@gmail.com";
-const FROM_EMAIL = process.env.ORDER_FROM_EMAIL || "Phở Trịnh <onboarding@resend.dev>";
+const FROM_EMAIL = process.env.ORDER_FROM_EMAIL || "Phở Trịnh <orders@photrinh.com>";
 
 function money(value) {
   return new Intl.NumberFormat("vi-VN", {
@@ -102,8 +102,12 @@ export default async function handler(req, res) {
       html: renderEmail(order),
     });
 
-    return res.status(200).json({ ok: true, id: result.data?.id });
+    return res.status(200).json({ ok: true, id: result.data?.id, from: FROM_EMAIL, to: TO_EMAIL });
   } catch (error) {
-    return res.status(500).json({ error: error.message || "Cannot send email" });
+    return res.status(500).json({
+      error: error.message || "Cannot send email",
+      from: FROM_EMAIL,
+      to: TO_EMAIL,
+    });
   }
 }

@@ -541,9 +541,11 @@ function renderLastOrder() {
   }
 }
 
-function showOrderMessage(order, emailSent = false) {
+function showOrderMessage(order, emailSent = false, emailError = "") {
   const message = document.querySelector("#orderMessage");
-  const emailStatus = emailSent ? " Email đã được gửi về quán." : " Đơn đã lưu trên trình duyệt, nhưng email chưa gửi được.";
+  const emailStatus = emailSent
+    ? " Email đã được gửi về quán."
+    : ` Đơn đã lưu trên trình duyệt, nhưng email chưa gửi được${emailError ? `: ${emailError}` : "."}`;
   message.textContent =
     order.payment === "Chuyển khoản ngân hàng"
       ? `Đã ghi nhận đơn hàng. Vui lòng chuyển khoản ${money(order.total)} với nội dung: ${order.transferNote}.${emailStatus}`
@@ -619,12 +621,14 @@ async function handleCheckout(event) {
   localStorage.setItem("pho-trinh-last-order", JSON.stringify(order));
   message.textContent = "Đang gửi đơn hàng...";
   let emailSent = false;
+  let emailError = "";
 
   try {
     await sendOrderEmail(order);
     emailSent = true;
   } catch (error) {
     console.error(error);
+    emailError = error.message;
   }
 
   cart = [];
@@ -633,7 +637,7 @@ async function handleCheckout(event) {
   event.currentTarget.reset();
   updateFulfillmentUI();
   updateTransferPanel();
-  showOrderMessage(order, emailSent);
+  showOrderMessage(order, emailSent, emailError);
 }
 
 document.addEventListener("click", (event) => {
