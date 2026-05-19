@@ -573,8 +573,12 @@ async function sendOrderEmail(order) {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.error || "Không gửi được email đơn hàng.");
+    const detail = error.resendError?.message || error.error || "Không gửi được email đơn hàng.";
+    const sender = error.from ? ` Sender: ${error.from}.` : "";
+    throw new Error(`${detail}.${sender}`);
   }
+
+  return response.json().catch(() => ({}));
 }
 
 async function handleCheckout(event) {
