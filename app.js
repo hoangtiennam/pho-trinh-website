@@ -223,6 +223,33 @@ async function geocodeAddress(address) {
   };
 }
 
+async function reverseGeocodeLocation(location) {
+  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(
+    location.lat
+  )}&lon=${encodeURIComponent(location.lng)}&zoom=18&addressdetails=1`;
+  const response = await fetch(url, {
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Không thể tìm địa chỉ từ vị trí hiện tại.");
+  }
+
+  const result = await response.json();
+  return result.display_name || "";
+}
+
+function fillAddressFromLocation(addressText, location) {
+  const addressInput = document.querySelector('[name="address"]');
+  if (!addressInput) return;
+
+  addressInput.value =
+    addressText ||
+    `Vị trí GPS: ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`;
+}
+
 async function calculateDistanceFromAddress() {
   if (!isRestaurantDelivery()) {
     clearDeliveryDistance("Khách tự đặt ship hoặc tự đến lấy: không tính phí ship.");
@@ -257,11 +284,20 @@ function calculateDistanceFromCurrentLocation() {
 
   setDeliveryStatus("Đang lấy vị trí hiện tại của bạn...");
   navigator.geolocation.getCurrentPosition(
-    (position) => {
+    async (position) => {
       const customerLocation = {
         lat: position.coords.latitude,
         lng: position.coords.longitude,
       };
+      setDeliveryStatus("Đã lấy vị trí. Đang điền địa chỉ giao hàng...");
+
+      try {
+        const addressText = await reverseGeocodeLocation(customerLocation);
+        fillAddressFromLocation(addressText, customerLocation);
+      } catch {
+        fillAddressFromLocation("", customerLocation);
+      }
+
       setDeliveryDistance(distanceInKm(storeLocation, customerLocation), "Theo vị trí hiện tại");
     },
     () => {
@@ -563,22 +599,39 @@ function showOrderMessage(order, emailSent = false, emailError = "") {
 }
 
 async function sendOrderEmail(order) {
-  const response = await fetch("/api/send-order", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(order),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    const detail = error.resendError?.message || error.error || "Không gửi được email đơn hàng.";
-    const sender = error.from ? ` Sender: ${error.from}.` : "";
-    throw new Error(`${detail}.${sender}`);
+  if (window.location.protocol === "file:") {
+    throw new Error("Chức năng gửi email chỉ chạy trên website đã deploy, không chạy khi mở file HTML trực tiếp.");
   }
 
-  return response.json().catch(() => ({}));
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 12000);
+
+  try {
+    const response = await fetch("/api/send-order", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(order),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      const detail = error.resendError?.message || error.error || "Không gửi được email đơn hàng.";
+      const sender = error.from ? ` Sender: ${error.from}.` : "";
+      throw new Error(`${detail}.${sender}`);
+    }
+
+    return response.json().catch(() => ({}));
+  } catch (error) {
+    if (error.name === "AbortError") {
+      throw new Error("Gửi email quá lâu, vui lòng kiểm tra Vercel Logs.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 }
 
 async function handleCheckout(event) {
