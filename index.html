@@ -172,9 +172,23 @@
             <select name="fulfillment" id="fulfillmentMethod">
               <option value="restaurant-delivery">Quán giao hàng</option>
               <option value="customer-ship">Khách tự đặt ship</option>
-              <option value="pickup">Khách tự đến lấy</option>
+              <option value="table-reservation">Đặt bàn trước</option>
             </select>
           </label>
+          <div class="reservation-fields" id="reservationFields" hidden>
+            <label>
+              Ngày đặt bàn
+              <input name="reservationDate" type="date" />
+            </label>
+            <label>
+              Giờ
+              <input name="reservationHour" type="number" inputmode="numeric" min="0" max="23" placeholder="18" />
+            </label>
+            <label>
+              Phút
+              <input name="reservationMinute" type="number" inputmode="numeric" min="0" max="59" step="5" placeholder="30" />
+            </label>
+          </div>
           <label>
             Địa chỉ
             <textarea name="address" required placeholder="Số nhà, đường, phường/xã"></textarea>

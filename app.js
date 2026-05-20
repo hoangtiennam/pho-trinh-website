@@ -73,6 +73,9 @@ const storeAddress = "Số 36, ngõ 26, phố Võ Văn Dũng, Đống Đa, Hà N
 const shippingRatePerKm = 6000;
 const minimumShippingFee = 25000;
 const minimumShippingDistanceKm = 4;
+const maximumDeliveryDistanceKm = 10;
+const deliveryRejectedMessage =
+  "Phở Trịnh rất lấy làm tiếc vì quãng đường xa quá sẽ không đảm bảo chất lượng của Phở Trịnh, Rất mong quý khách thông cảm";
 const peakShippingRatePerKm = 8000;
 const peakMinimumShippingFee = 35000;
 const peakStartHour = 11;
@@ -93,6 +96,51 @@ function getFulfillmentMethod() {
 
 function isRestaurantDelivery() {
   return getFulfillmentMethod() === "restaurant-delivery";
+}
+
+function isTableReservation() {
+  return getFulfillmentMethod() === "table-reservation";
+}
+
+function isDeliveryDistanceRejected() {
+  return isRestaurantDelivery() && deliveryDistanceKm > maximumDeliveryDistanceKm;
+}
+
+function getTodayDateInputValue() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getReservationDateTime(dateValue, hourValue, minuteValue) {
+  if (!dateValue || hourValue === "" || minuteValue === "") return null;
+
+  const hour = Number(hourValue);
+  const minute = Number(minuteValue);
+  if (!Number.isInteger(hour) || !Number.isInteger(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+    return null;
+  }
+
+  const [year, month, day] = String(dateValue).split("-").map(Number);
+  if (!year || !month || !day) return null;
+
+  return new Date(year, month - 1, day, hour, minute, 0, 0);
+}
+
+function getReservationValidationMessage(dateValue, hourValue, minuteValue) {
+  const reservationDateTime = getReservationDateTime(dateValue, hourValue, minuteValue);
+  if (!reservationDateTime) {
+    return "Vui lòng chọn đầy đủ ngày, giờ và phút đặt bàn.";
+  }
+
+  const minimumReservationTime = new Date(Date.now() + 30 * 60 * 1000);
+  if (reservationDateTime <= minimumReservationTime) {
+    return "Thời gian đặt bàn phải nằm trong tương lai và báo trước ít nhất 30 phút so với hiện tại.";
+  }
+
+  return "";
 }
 
 function getHanoiHour(date = new Date()) {
@@ -127,7 +175,7 @@ function getShippingPricing() {
 }
 
 function getShippingFee() {
-  if (!isRestaurantDelivery() || !cart.length || !deliveryDistanceKm) return 0;
+  if (!isRestaurantDelivery() || isDeliveryDistanceRejected() || !cart.length || !deliveryDistanceKm) return 0;
   const pricing = getShippingPricing();
   if (deliveryDistanceKm < minimumShippingDistanceKm) return pricing.minimumFee;
   return Math.ceil(deliveryDistanceKm) * pricing.ratePerKm;
@@ -155,6 +203,12 @@ function setDeliveryDistance(distanceKm, sourceLabel) {
   const status = document.querySelector("#deliveryDistance");
   deliveryDistanceKm = Number(distanceKm.toFixed(2));
   if (status) {
+    if (isDeliveryDistanceRejected()) {
+      status.textContent = deliveryRejectedMessage;
+      renderCart();
+      return;
+    }
+
     const pricing = getShippingPricing();
     status.textContent = `${sourceLabel}: khoảng ${deliveryDistanceKm.toFixed(2)} km từ quán. ${pricing.label}, phí ship ${money(getShippingFee())}.`;
   }
@@ -175,22 +229,48 @@ function clearDeliveryDistance(message) {
 function updateFulfillmentUI() {
   const address = document.querySelector('[name="address"]');
   const deliveryTools = document.querySelector(".delivery-tools");
+  const reservationFields = document.querySelector("#reservationFields");
+  const reservationDate = document.querySelector('[name="reservationDate"]');
+  const reservationHour = document.querySelector('[name="reservationHour"]');
+  const reservationMinute = document.querySelector('[name="reservationMinute"]');
   const restaurantDelivery = isRestaurantDelivery();
+  const tableReservation = isTableReservation();
 
   if (address) {
     address.required = restaurantDelivery;
     address.disabled = false;
     address.placeholder = restaurantDelivery
       ? "Số nhà, đường, phường/xã"
-      : "Không bắt buộc nếu khách tự đặt ship hoặc tự đến lấy";
+      : tableReservation
+        ? "Không bắt buộc khi đặt bàn trước"
+        : "Không bắt buộc nếu khách tự đặt ship";
   }
 
   if (deliveryTools) {
     deliveryTools.hidden = !restaurantDelivery;
   }
 
+  if (reservationFields) {
+    reservationFields.hidden = !tableReservation;
+  }
+
+  [reservationDate, reservationHour, reservationMinute].forEach((field) => {
+    if (!field) return;
+    field.required = tableReservation;
+    field.disabled = !tableReservation;
+    if (!tableReservation) field.value = "";
+  });
+
+  if (reservationDate) {
+    reservationDate.min = getTodayDateInputValue();
+  }
+
   if (!restaurantDelivery) {
-    clearDeliveryDistance("Khách tự đặt ship hoặc tự đến lấy: không tính phí ship.");
+    clearDeliveryDistance(
+      tableReservation
+        ? "Đặt bàn trước: vui lòng chọn ngày, giờ và phút."
+        : "Khách tự đặt ship: không tính phí ship."
+    );
   } else if (!deliveryDistanceKm) {
     setDeliveryStatus(
       "Nhập địa chỉ hoặc lấy vị trí để tính phí ship. Giờ thường: dưới 4km 25.000đ, từ 4km 6.000đ/km. 11:00-13:00: dưới 4km 35.000đ, từ 4km 8.000đ/km."
@@ -252,7 +332,7 @@ function fillAddressFromLocation(addressText, location) {
 
 async function calculateDistanceFromAddress() {
   if (!isRestaurantDelivery()) {
-    clearDeliveryDistance("Khách tự đặt ship hoặc tự đến lấy: không tính phí ship.");
+    clearDeliveryDistance("Khách tự đặt ship: không tính phí ship.");
     return;
   }
 
@@ -273,7 +353,7 @@ async function calculateDistanceFromAddress() {
 
 function calculateDistanceFromCurrentLocation() {
   if (!isRestaurantDelivery()) {
-    clearDeliveryDistance("Khách tự đặt ship hoặc tự đến lấy: không tính phí ship.");
+    clearDeliveryDistance("Khách tự đặt ship: không tính phí ship.");
     return;
   }
 
@@ -355,8 +435,9 @@ function updateTransferPanel() {
   if (!form || !panel || !transferQr || !transferAmount || !transferNote) return;
 
   const isBankTransfer = form.elements.payment.value === "bank";
-  panel.hidden = !isBankTransfer;
-  transferAmount.textContent = money(getOrderTotal());
+  const total = getOrderTotal();
+  panel.hidden = !isBankTransfer || (isTableReservation() && total <= 0);
+  transferAmount.textContent = money(total);
   transferNote.textContent = getTransferNote();
   transferQr.src = getVietQrUrl();
 }
@@ -599,18 +680,20 @@ function renderLastOrder() {
 
 function showOrderMessage(order, emailStatus = "pending", emailError = "") {
   const message = document.querySelector("#orderMessage");
+  const isReservation = order.fulfillmentValue === "table-reservation";
   const emailText =
     emailStatus === "sent"
       ? " Email đã được gửi về Phở Trịnh."
       : emailStatus === "failed"
         ? ` Đơn đã lưu trên trình duyệt, nhưng email chưa gửi được${emailError ? `: ${emailError}` : "."}`
         : " Email đang được gửi về Phở Trịnh.";
+  const confirmationText = isReservation ? "Đã ghi nhận thông tin đặt bàn trước." : "Đã ghi nhận đơn hàng.";
   message.textContent =
-    order.payment === "Chuyển khoản ngân hàng"
-      ? `Đã ghi nhận đơn hàng. Vui lòng chuyển khoản ${money(order.total)} với nội dung: ${order.transferNote}.${emailText}`
-      : `Đã ghi nhận đơn hàng.${emailText}`;
+    order.payment === "Chuyển khoản ngân hàng" && order.total > 0
+      ? `${confirmationText} Vui lòng chuyển khoản ${money(order.total)} với nội dung: ${order.transferNote}.${emailText}`
+      : `${confirmationText}${emailText}`;
 
-  if (order.payment === "Chuyển khoản ngân hàng") {
+  if (order.payment === "Chuyển khoản ngân hàng" && order.total > 0) {
     const br = document.createElement("br");
     const img = document.createElement("img");
     img.src = getVietQrUrl(order.total, order.transferNote);
@@ -661,8 +744,41 @@ async function handleCheckout(event) {
   event.preventDefault();
   const message = document.querySelector("#orderMessage");
 
-  if (!cart.length) {
+  if (!cart.length && !isTableReservation()) {
     message.textContent = "Vui lòng thêm ít nhất một món trước khi gửi đơn.";
+    return;
+  }
+
+  if (isRestaurantDelivery() && !deliveryDistanceKm) {
+    message.textContent = "Vui lòng tính khoảng cách giao hàng trước khi gửi đơn.";
+    return;
+  }
+
+  if (isDeliveryDistanceRejected()) {
+    message.textContent = deliveryRejectedMessage;
+    return;
+  }
+
+  const form = new FormData(event.currentTarget);
+  const reservationHour = form.get("reservationHour");
+  const reservationMinute = form.get("reservationMinute");
+  const reservationValidationMessage = isTableReservation()
+    ? getReservationValidationMessage(form.get("reservationDate"), reservationHour, reservationMinute)
+    : "";
+  const reservationDateInput = event.currentTarget.elements.reservationDate;
+  const reservationHourInput = event.currentTarget.elements.reservationHour;
+  const reservationMinuteInput = event.currentTarget.elements.reservationMinute;
+
+  [reservationDateInput, reservationHourInput, reservationMinuteInput].forEach((field) => {
+    if (field) field.setCustomValidity("");
+  });
+
+  if (reservationValidationMessage) {
+    if (reservationDateInput) {
+      reservationDateInput.setCustomValidity(reservationValidationMessage);
+      reservationDateInput.reportValidity();
+    }
+    message.textContent = reservationValidationMessage;
     return;
   }
 
@@ -679,7 +795,6 @@ async function handleCheckout(event) {
 
   phoneInput.setCustomValidity("");
 
-  const form = new FormData(event.currentTarget);
   const subtotal = getCartTotal();
   const deliveryFee = getShippingFee();
   const total = getOrderTotal();
@@ -692,6 +807,13 @@ async function handleCheckout(event) {
     address: form.get("address"),
     fulfillment: fulfillmentSelect.options[fulfillmentSelect.selectedIndex].text,
     fulfillmentValue: form.get("fulfillment"),
+    reservationDate: form.get("reservationDate"),
+    reservationHour,
+    reservationMinute,
+    reservationTime:
+      form.get("reservationDate") && reservationHour !== null && reservationMinute !== null
+        ? `${String(reservationHour).padStart(2, "0")}:${String(reservationMinute).padStart(2, "0")}`
+        : "",
     payment: paymentSelect.options[paymentSelect.selectedIndex].text,
     transferNote: getTransferNote(),
     bankId,
@@ -759,6 +881,11 @@ document.querySelector('[name="address"]').addEventListener("input", () => {
     clearDeliveryDistance('Địa chỉ đã thay đổi. Bấm "Tính từ địa chỉ" để cập nhật phí ship.');
   }
 });
+document
+  .querySelectorAll('[name="reservationDate"], [name="reservationHour"], [name="reservationMinute"]')
+  .forEach((field) => {
+    field.addEventListener("input", () => field.setCustomValidity(""));
+  });
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

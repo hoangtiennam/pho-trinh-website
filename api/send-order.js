@@ -56,12 +56,26 @@ function renderItems(items = []) {
 }
 
 function renderEmail(order) {
+  const isReservation = order.fulfillmentValue === "table-reservation";
+  const reservationHour = order.reservationHour === "" || order.reservationHour == null ? "Chua chon" : order.reservationHour;
+  const reservationMinute =
+    order.reservationMinute === "" || order.reservationMinute == null ? "Chua chon" : order.reservationMinute;
+  const reservationDetails = isReservation
+    ? `
+      <p><strong>Ngay dat ban:</strong> ${escapeHtml(order.reservationDate || "Chua chon")}</p>
+      <p><strong>Gio:</strong> ${escapeHtml(reservationHour)}</p>
+      <p><strong>Phut:</strong> ${escapeHtml(reservationMinute)}</p>
+      <p><strong>Thoi gian dat ban:</strong> ${escapeHtml(order.reservationTime || "Chua chon")}</p>
+    `
+    : "";
+
   return `
     <div style="font-family:Arial,sans-serif;line-height:1.5;color:#211714">
-      <h2>Don hang moi tu website Pho Trinh</h2>
+      <h2>${isReservation ? "Dat ban truoc tu website Pho Trinh" : "Don hang moi tu website Pho Trinh"}</h2>
       <p><strong>Khach hang:</strong> ${escapeHtml(order.customer)}</p>
       <p><strong>So dien thoai:</strong> ${escapeHtml(order.phone)}</p>
       <p><strong>Hinh thuc nhan mon:</strong> ${escapeHtml(order.fulfillment)}</p>
+      ${reservationDetails}
       <p><strong>Dia chi:</strong> ${escapeHtml(order.address || "Khong co")}</p>
       <p><strong>Thanh toan:</strong> ${escapeHtml(order.payment)}</p>
       <p><strong>Noi dung chuyen khoan:</strong> ${escapeHtml(order.transferNote)}</p>
@@ -94,15 +108,17 @@ export default async function handler(req, res) {
 
   try {
     const order = getRequestBody(req);
+    const hasItems = Array.isArray(order?.items) && order.items.length > 0;
+    const isReservation = order?.fulfillmentValue === "table-reservation";
 
-    if (!order?.customer || !order?.phone || !Array.isArray(order?.items) || !order.items.length) {
+    if (!order?.customer || !order?.phone || (!hasItems && !isReservation)) {
       return res.status(400).json({ error: "Invalid order payload" });
     }
 
     const result = await resend.emails.send({
       from: FROM_EMAIL,
       to: TO_EMAIL,
-      subject: `Don Pho Trinh moi - ${order.customer} - ${money(order.total)}`,
+      subject: `${isReservation ? "Dat ban Pho Trinh moi" : "Don Pho Trinh moi"} - ${order.customer} - ${money(order.total)}`,
       html: renderEmail(order),
     });
 

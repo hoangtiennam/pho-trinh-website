@@ -588,8 +588,15 @@ h2 {
   gap: 10px;
 }
 
-.delivery-tools[hidden] {
+.delivery-tools[hidden],
+.reservation-fields[hidden] {
   display: none;
+}
+
+.reservation-fields {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 10px;
 }
 
 .delivery-status {
@@ -792,7 +799,8 @@ h2 {
     grid-template-columns: 1fr;
   }
 
-  .delivery-tools {
+  .delivery-tools,
+  .reservation-fields {
     grid-template-columns: 1fr;
   }
 
