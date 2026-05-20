@@ -577,15 +577,18 @@ function renderLastOrder() {
   }
 }
 
-function showOrderMessage(order, emailSent = false, emailError = "") {
+function showOrderMessage(order, emailStatus = "pending", emailError = "") {
   const message = document.querySelector("#orderMessage");
-  const emailStatus = emailSent
-    ? " Email đã được gửi về Phở Trịnh."
-    : ` Đơn đã lưu trên trình duyệt, nhưng email chưa gửi được${emailError ? `: ${emailError}` : "."}`;
+  const emailText =
+    emailStatus === "sent"
+      ? " Email đã được gửi về Phở Trịnh."
+      : emailStatus === "failed"
+        ? ` Đơn đã lưu trên trình duyệt, nhưng email chưa gửi được${emailError ? `: ${emailError}` : "."}`
+        : " Email đang được gửi về Phở Trịnh.";
   message.textContent =
     order.payment === "Chuyển khoản ngân hàng"
-      ? `Đã ghi nhận đơn hàng. Vui lòng chuyển khoản ${money(order.total)} với nội dung: ${order.transferNote}.${emailStatus}`
-      : `Đã ghi nhận đơn hàng.${emailStatus}`;
+      ? `Đã ghi nhận đơn hàng. Vui lòng chuyển khoản ${money(order.total)} với nội dung: ${order.transferNote}.${emailText}`
+      : `Đã ghi nhận đơn hàng.${emailText}`;
 
   if (order.payment === "Chuyển khoản ngân hàng") {
     const br = document.createElement("br");
@@ -676,25 +679,22 @@ async function handleCheckout(event) {
   };
 
   localStorage.setItem("pho-trinh-last-order", JSON.stringify(order));
-  message.textContent = "Đang xác nhận đơn hàng...";
-  let emailSent = false;
-  let emailError = "";
-
-  try {
-    await sendOrderEmail(order);
-    emailSent = true;
-  } catch (error) {
-    console.error(error);
-    emailError = error.message;
-  }
-
   cart = [];
   renderCart();
   renderLastOrder();
   event.currentTarget.reset();
   updateFulfillmentUI();
   updateTransferPanel();
-  showOrderMessage(order, emailSent, emailError);
+  showOrderMessage(order, "pending");
+
+  sendOrderEmail(order)
+    .then(() => {
+      showOrderMessage(order, "sent");
+    })
+    .catch((error) => {
+      console.error(error);
+      showOrderMessage(order, "failed", error.message);
+    });
 }
 
 document.addEventListener("click", (event) => {
