@@ -76,6 +76,8 @@ const minimumShippingDistanceKm = 4;
 const maximumDeliveryDistanceKm = 10;
 const deliveryRejectedMessage =
   "Phở Trịnh rất lấy làm tiếc vì quãng đường xa quá sẽ không đảm bảo chất lượng của Phở Trịnh, Rất mong quý khách thông cảm";
+const reservationAdvanceNoticeMessage =
+  "Quý khách vui lòng đặt bàn trước 30 phút để nhà hàng được phục vụ Quý khách chu đáo. Xin cảm ơn";
 const peakShippingRatePerKm = 8000;
 const peakMinimumShippingFee = 35000;
 const peakStartHour = 11;
@@ -149,7 +151,7 @@ function getReservationValidationMessage(dateValue, hourValue, minuteValue) {
 
   const minimumReservationTimestamp = Date.now() + 30 * 60 * 1000;
   if (reservationTimestamp <= minimumReservationTimestamp) {
-    return "Thời gian đặt bàn phải nằm trong tương lai và báo trước ít nhất 30 phút so với hiện tại.";
+    return reservationAdvanceNoticeMessage;
   }
 
   return "";
@@ -236,6 +238,14 @@ function clearDeliveryDistance(message) {
   deliveryDistanceKm = 0;
   setDeliveryStatus(message);
   renderCart();
+}
+
+function setOrderMessage(messageText, type = "success") {
+  const message = document.querySelector("#orderMessage");
+  if (!message) return;
+
+  message.textContent = messageText;
+  message.classList.toggle("error", type === "error");
 }
 
 function updateFulfillmentUI() {
@@ -692,6 +702,7 @@ function renderLastOrder() {
 
 function showOrderMessage(order, emailStatus = "pending", emailError = "") {
   const message = document.querySelector("#orderMessage");
+  if (message) message.classList.remove("error");
   const isReservation = order.fulfillmentValue === "table-reservation";
   const emailText =
     emailStatus === "sent"
@@ -757,17 +768,17 @@ async function handleCheckout(event) {
   const message = document.querySelector("#orderMessage");
 
   if (!cart.length && !isTableReservation()) {
-    message.textContent = "Vui lòng thêm ít nhất một món trước khi gửi đơn.";
+    setOrderMessage("Vui lòng thêm ít nhất một món trước khi gửi đơn.", "error");
     return;
   }
 
   if (isRestaurantDelivery() && !deliveryDistanceKm) {
-    message.textContent = "Vui lòng tính khoảng cách giao hàng trước khi gửi đơn.";
+    setOrderMessage("Vui lòng tính khoảng cách giao hàng trước khi gửi đơn.", "error");
     return;
   }
 
   if (isDeliveryDistanceRejected()) {
-    message.textContent = deliveryRejectedMessage;
+    setOrderMessage(deliveryRejectedMessage, "error");
     return;
   }
 
@@ -790,7 +801,7 @@ async function handleCheckout(event) {
       reservationDateInput.setCustomValidity(reservationValidationMessage);
       reservationDateInput.reportValidity();
     }
-    message.textContent = reservationValidationMessage;
+    setOrderMessage(reservationValidationMessage, "error");
     return;
   }
 
@@ -801,7 +812,7 @@ async function handleCheckout(event) {
   if (!isValidVietnamPhone(normalizedPhone)) {
     phoneInput.setCustomValidity("Số điện thoại Việt Nam phải gồm đúng 10 chữ số và bắt đầu bằng 0.");
     phoneInput.reportValidity();
-    message.textContent = "Vui lòng nhập số điện thoại Việt Nam hợp lệ gồm đúng 10 chữ số.";
+    setOrderMessage("Vui lòng nhập số điện thoại Việt Nam hợp lệ gồm đúng 10 chữ số.", "error");
     return;
   }
 
