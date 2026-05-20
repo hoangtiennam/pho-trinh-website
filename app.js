@@ -77,7 +77,7 @@ const maximumDeliveryDistanceKm = 10;
 const deliveryRejectedMessage =
   "Phở Trịnh rất lấy làm tiếc vì quãng đường xa quá sẽ không đảm bảo chất lượng của Phở Trịnh, Rất mong quý khách thông cảm";
 const reservationAdvanceNoticeMessage =
-  "Quý khách vui lòng đặt bàn trước 30 phút để nhà hàng được phục vụ Quý khách chu đáo. Xin cảm ơn";
+  "Quý khách vui lòng đặt bàn trước 30 phút và trước 20h30 để nhà hàng được phục vụ Quý khách chu đáo. Xin cảm ơn";
 const soldOutAfterHoursMessage =
   "Rất lấy làm tiếc vì nhà hàng đã hết món. Xin lỗi quý khách và hẹn gặp lại lần sau.";
 const peakShippingRatePerKm = 8000;
@@ -110,6 +110,10 @@ function isTableReservation() {
 
 function isPickup() {
   return getFulfillmentMethod() === "pickup";
+}
+
+function needsScheduledTime() {
+  return isPickup() || isTableReservation();
 }
 
 function isDeliveryDistanceRejected() {
@@ -283,6 +287,14 @@ function setOrderMessage(messageText, type = "success") {
   message.classList.toggle("error", type === "error");
 }
 
+function setReservationWarning(messageText = "") {
+  const warning = document.querySelector("#reservationWarning");
+  if (!warning) return;
+
+  warning.textContent = messageText;
+  warning.hidden = !messageText;
+}
+
 function updateFulfillmentUI() {
   const address = document.querySelector('[name="address"]');
   const deliveryTools = document.querySelector(".delivery-tools");
@@ -292,6 +304,7 @@ function updateFulfillmentUI() {
   const reservationMinute = document.querySelector('[name="reservationMinute"]');
   const restaurantDelivery = isRestaurantDelivery();
   const tableReservation = isTableReservation();
+  const scheduledTime = needsScheduledTime();
 
   if (address) {
     address.required = restaurantDelivery;
@@ -310,18 +323,22 @@ function updateFulfillmentUI() {
   }
 
   if (reservationFields) {
-    reservationFields.hidden = !tableReservation;
+    reservationFields.hidden = !scheduledTime;
   }
 
   [reservationDate, reservationHour, reservationMinute].forEach((field) => {
     if (!field) return;
-    field.required = tableReservation;
-    field.disabled = !tableReservation;
-    if (!tableReservation) field.value = "";
+    field.required = scheduledTime;
+    field.disabled = !scheduledTime;
+    if (!scheduledTime) field.value = "";
   });
 
   if (reservationDate) {
     reservationDate.min = getTodayDateInputValue();
+  }
+
+  if (!scheduledTime) {
+    setReservationWarning("");
   }
 
   if (!restaurantDelivery) {
@@ -807,6 +824,7 @@ async function handleCheckout(event) {
 
   if (isAfterClosingTime()) {
     setOrderMessage(soldOutAfterHoursMessage, "error");
+    setReservationWarning(soldOutAfterHoursMessage);
     return;
   }
 
@@ -828,7 +846,8 @@ async function handleCheckout(event) {
   const form = new FormData(event.currentTarget);
   const reservationHour = form.get("reservationHour");
   const reservationMinute = form.get("reservationMinute");
-  const reservationValidationMessage = isTableReservation()
+  const scheduledTime = needsScheduledTime();
+  const reservationValidationMessage = scheduledTime
     ? getReservationValidationMessage(form.get("reservationDate"), reservationHour, reservationMinute)
     : "";
   const reservationDateInput = event.currentTarget.elements.reservationDate;
@@ -839,12 +858,12 @@ async function handleCheckout(event) {
     if (field) field.setCustomValidity("");
   });
 
-  if (isTableReservation() && isReservationAfterClosingTime(reservationHour, reservationMinute)) {
+  if (scheduledTime && isReservationAfterClosingTime(reservationHour, reservationMinute)) {
     if (reservationHourInput) {
-      reservationHourInput.setCustomValidity(soldOutAfterHoursMessage);
+      reservationHourInput.setCustomValidity(reservationAdvanceNoticeMessage);
       reservationHourInput.reportValidity();
     }
-    setOrderMessage(soldOutAfterHoursMessage, "error");
+    setReservationWarning(reservationAdvanceNoticeMessage);
     return;
   }
 
@@ -853,9 +872,11 @@ async function handleCheckout(event) {
       reservationDateInput.setCustomValidity(reservationValidationMessage);
       reservationDateInput.reportValidity();
     }
-    setOrderMessage(reservationValidationMessage, "error");
+    setReservationWarning(reservationValidationMessage);
     return;
   }
+
+  setReservationWarning("");
 
   const phoneInput = event.currentTarget.elements.phone;
   const normalizedPhone = normalizePhone(phoneInput.value);
@@ -959,7 +980,10 @@ document.querySelector('[name="address"]').addEventListener("input", () => {
 document
   .querySelectorAll('[name="reservationDate"], [name="reservationHour"], [name="reservationMinute"]')
   .forEach((field) => {
-    field.addEventListener("input", () => field.setCustomValidity(""));
+    field.addEventListener("input", () => {
+      field.setCustomValidity("");
+      setReservationWarning("");
+    });
   });
 
 if ("serviceWorker" in navigator) {

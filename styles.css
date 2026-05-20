@@ -606,6 +606,18 @@ h2 {
   font-size: 0.94rem;
 }
 
+.reservation-warning {
+  min-height: 22px;
+  margin: -4px 0 0;
+  color: #b42318;
+  font-size: 0.94rem;
+  font-weight: 750;
+}
+
+.reservation-warning[hidden] {
+  display: none;
+}
+
 .full {
   width: 100%;
 }

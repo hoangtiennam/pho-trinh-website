@@ -57,15 +57,17 @@ function renderItems(items = []) {
 
 function renderEmail(order) {
   const isReservation = order.fulfillmentValue === "table-reservation";
+  const isScheduledPickup = order.fulfillmentValue === "pickup";
   const reservationHour = order.reservationHour === "" || order.reservationHour == null ? "Chua chon" : order.reservationHour;
   const reservationMinute =
     order.reservationMinute === "" || order.reservationMinute == null ? "Chua chon" : order.reservationMinute;
-  const reservationDetails = isReservation
+  const scheduleTitle = isReservation ? "dat ban" : "hen lay mon";
+  const reservationDetails = isReservation || isScheduledPickup
     ? `
-      <p><strong>Ngay dat ban:</strong> ${escapeHtml(order.reservationDate || "Chua chon")}</p>
+      <p><strong>Ngay ${scheduleTitle}:</strong> ${escapeHtml(order.reservationDate || "Chua chon")}</p>
       <p><strong>Gio:</strong> ${escapeHtml(reservationHour)}</p>
       <p><strong>Phut:</strong> ${escapeHtml(reservationMinute)}</p>
-      <p><strong>Thoi gian dat ban:</strong> ${escapeHtml(order.reservationTime || "Chua chon")}</p>
+      <p><strong>Thoi gian ${scheduleTitle}:</strong> ${escapeHtml(order.reservationTime || "Chua chon")}</p>
     `
     : "";
 
