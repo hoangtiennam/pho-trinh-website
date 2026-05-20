@@ -108,6 +108,10 @@ function isTableReservation() {
   return getFulfillmentMethod() === "table-reservation";
 }
 
+function isPickup() {
+  return getFulfillmentMethod() === "pickup";
+}
+
 function isDeliveryDistanceRejected() {
   return isRestaurantDelivery() && deliveryDistanceKm > maximumDeliveryDistanceKm;
 }
@@ -188,6 +192,13 @@ function getHanoiTimeParts(date = new Date()) {
 function isAfterClosingTime(date = new Date()) {
   const { hour, minute } = getHanoiTimeParts(date);
   if (!Number.isFinite(hour) || !Number.isFinite(minute)) return false;
+  return hour > closingHour || (hour === closingHour && minute >= closingMinute);
+}
+
+function isReservationAfterClosingTime(hourValue, minuteValue) {
+  const hour = Number(hourValue);
+  const minute = Number(minuteValue);
+  if (!Number.isInteger(hour) || !Number.isInteger(minute)) return false;
   return hour > closingHour || (hour === closingHour && minute >= closingMinute);
 }
 
@@ -289,7 +300,9 @@ function updateFulfillmentUI() {
       ? "Số nhà, đường, phường/xã"
       : tableReservation
         ? "Không bắt buộc khi đặt bàn trước"
-        : "Không bắt buộc nếu khách tự đặt ship";
+        : isPickup()
+          ? "Không bắt buộc khi khách tự đến lấy"
+          : "Không bắt buộc nếu khách tự đặt ship";
   }
 
   if (deliveryTools) {
@@ -315,7 +328,9 @@ function updateFulfillmentUI() {
     clearDeliveryDistance(
       tableReservation
         ? "Đặt bàn trước: vui lòng chọn ngày, giờ và phút."
-        : "Khách tự đặt ship: không tính phí ship."
+        : isPickup()
+          ? "Khách tự đến lấy: không tính phí ship."
+          : "Khách tự đặt ship: không tính phí ship."
     );
   } else if (!deliveryDistanceKm) {
     setDeliveryStatus(
@@ -378,7 +393,7 @@ function fillAddressFromLocation(addressText, location) {
 
 async function calculateDistanceFromAddress() {
   if (!isRestaurantDelivery()) {
-    clearDeliveryDistance("Khách tự đặt ship: không tính phí ship.");
+    clearDeliveryDistance(isPickup() ? "Khách tự đến lấy: không tính phí ship." : "Khách tự đặt ship: không tính phí ship.");
     return;
   }
 
@@ -399,7 +414,7 @@ async function calculateDistanceFromAddress() {
 
 function calculateDistanceFromCurrentLocation() {
   if (!isRestaurantDelivery()) {
-    clearDeliveryDistance("Khách tự đặt ship: không tính phí ship.");
+    clearDeliveryDistance(isPickup() ? "Khách tự đến lấy: không tính phí ship." : "Khách tự đặt ship: không tính phí ship.");
     return;
   }
 
@@ -823,6 +838,15 @@ async function handleCheckout(event) {
   [reservationDateInput, reservationHourInput, reservationMinuteInput].forEach((field) => {
     if (field) field.setCustomValidity("");
   });
+
+  if (isTableReservation() && isReservationAfterClosingTime(reservationHour, reservationMinute)) {
+    if (reservationHourInput) {
+      reservationHourInput.setCustomValidity(soldOutAfterHoursMessage);
+      reservationHourInput.reportValidity();
+    }
+    setOrderMessage(soldOutAfterHoursMessage, "error");
+    return;
+  }
 
   if (reservationValidationMessage) {
     if (reservationDateInput) {
