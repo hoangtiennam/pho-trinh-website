@@ -78,10 +78,14 @@ const deliveryRejectedMessage =
   "Phở Trịnh rất lấy làm tiếc vì quãng đường xa quá sẽ không đảm bảo chất lượng của Phở Trịnh, Rất mong quý khách thông cảm";
 const reservationAdvanceNoticeMessage =
   "Quý khách vui lòng đặt bàn trước 30 phút để nhà hàng được phục vụ Quý khách chu đáo. Xin cảm ơn";
+const soldOutAfterHoursMessage =
+  "Rất lấy làm tiếc vì nhà hàng đã hết món. Xin lỗi quý khách và hẹn gặp lại lần sau.";
 const peakShippingRatePerKm = 8000;
 const peakMinimumShippingFee = 35000;
 const peakStartHour = 11;
 const peakEndHour = 13;
+const closingHour = 20;
+const closingMinute = 30;
 let deliveryDistanceKm = 0;
 
 function money(value) {
@@ -165,6 +169,26 @@ function getHanoiHour(date = new Date()) {
       hour12: false,
     }).format(date)
   );
+}
+
+function getHanoiTimeParts(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Bangkok",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+
+  return {
+    hour: Number(parts.find((part) => part.type === "hour")?.value),
+    minute: Number(parts.find((part) => part.type === "minute")?.value),
+  };
+}
+
+function isAfterClosingTime(date = new Date()) {
+  const { hour, minute } = getHanoiTimeParts(date);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return false;
+  return hour > closingHour || (hour === closingHour && minute >= closingMinute);
 }
 
 function isPeakShippingTime(date = new Date()) {
@@ -765,7 +789,11 @@ async function sendOrderEmail(order) {
 
 async function handleCheckout(event) {
   event.preventDefault();
-  const message = document.querySelector("#orderMessage");
+
+  if (isAfterClosingTime()) {
+    setOrderMessage(soldOutAfterHoursMessage, "error");
+    return;
+  }
 
   if (!cart.length && !isTableReservation()) {
     setOrderMessage("Vui lòng thêm ít nhất một món trước khi gửi đơn.", "error");
