@@ -155,7 +155,17 @@
           </label>
           <label>
             Số điện thoại
-            <input name="phone" inputmode="tel" autocomplete="tel" required placeholder="Số điện thoại" />
+            <input
+              name="phone"
+              type="tel"
+              inputmode="numeric"
+              autocomplete="tel"
+              required
+              maxlength="10"
+              pattern="0[0-9]{9}"
+              placeholder="Ví dụ: 0912345678"
+              title="Số điện thoại Việt Nam gồm 10 chữ số và bắt đầu bằng 0"
+            />
           </label>
           <label>
             Hình thức nhận món
@@ -273,4 +283,3 @@
     <script src="app.js"></script>
   </body>
 </html>
-

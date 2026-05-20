@@ -316,6 +316,26 @@ function getTransferNote() {
   return phone ? `${transferPrefix} ${phone}` : transferPrefix;
 }
 
+function normalizePhone(value) {
+  return String(value || "").replace(/\D/g, "").slice(0, 10);
+}
+
+function isValidVietnamPhone(value) {
+  return /^0\d{9}$/.test(value);
+}
+
+function handlePhoneInput(event) {
+  const phoneInput = event.currentTarget;
+  const normalizedPhone = normalizePhone(phoneInput.value);
+  phoneInput.value = normalizedPhone;
+  phoneInput.setCustomValidity(
+    normalizedPhone && !isValidVietnamPhone(normalizedPhone)
+      ? "Số điện thoại Việt Nam phải gồm đúng 10 chữ số và bắt đầu bằng 0."
+      : ""
+  );
+  updateTransferPanel();
+}
+
 function getVietQrUrl(amount = getOrderTotal(), note = getTransferNote()) {
   const params = new URLSearchParams({
     amount: String(Math.max(0, Math.round(amount))),
@@ -646,6 +666,19 @@ async function handleCheckout(event) {
     return;
   }
 
+  const phoneInput = event.currentTarget.elements.phone;
+  const normalizedPhone = normalizePhone(phoneInput.value);
+  phoneInput.value = normalizedPhone;
+
+  if (!isValidVietnamPhone(normalizedPhone)) {
+    phoneInput.setCustomValidity("Số điện thoại Việt Nam phải gồm đúng 10 chữ số và bắt đầu bằng 0.");
+    phoneInput.reportValidity();
+    message.textContent = "Vui lòng nhập số điện thoại Việt Nam hợp lệ gồm đúng 10 chữ số.";
+    return;
+  }
+
+  phoneInput.setCustomValidity("");
+
   const form = new FormData(event.currentTarget);
   const subtotal = getCartTotal();
   const deliveryFee = getShippingFee();
@@ -717,7 +750,7 @@ document.addEventListener("click", (event) => {
 
 document.querySelector("#checkoutForm").addEventListener("submit", handleCheckout);
 document.querySelector('[name="payment"]').addEventListener("change", updateTransferPanel);
-document.querySelector('[name="phone"]').addEventListener("input", updateTransferPanel);
+document.querySelector('[name="phone"]').addEventListener("input", handlePhoneInput);
 document.querySelector('[name="fulfillment"]').addEventListener("change", updateFulfillmentUI);
 document.querySelector("#useCurrentLocation").addEventListener("click", calculateDistanceFromCurrentLocation);
 document.querySelector("#calculateAddressDistance").addEventListener("click", calculateDistanceFromAddress);
