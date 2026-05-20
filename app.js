@@ -106,15 +106,27 @@ function isDeliveryDistanceRejected() {
   return isRestaurantDelivery() && deliveryDistanceKm > maximumDeliveryDistanceKm;
 }
 
+function getHanoiDateParts(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  return {
+    year: parts.find((part) => part.type === "year")?.value,
+    month: parts.find((part) => part.type === "month")?.value,
+    day: parts.find((part) => part.type === "day")?.value,
+  };
+}
+
 function getTodayDateInputValue() {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
+  const { year, month, day } = getHanoiDateParts();
   return `${year}-${month}-${day}`;
 }
 
-function getReservationDateTime(dateValue, hourValue, minuteValue) {
+function getReservationHanoiTimestamp(dateValue, hourValue, minuteValue) {
   if (!dateValue || hourValue === "" || minuteValue === "") return null;
 
   const hour = Number(hourValue);
@@ -126,17 +138,17 @@ function getReservationDateTime(dateValue, hourValue, minuteValue) {
   const [year, month, day] = String(dateValue).split("-").map(Number);
   if (!year || !month || !day) return null;
 
-  return new Date(year, month - 1, day, hour, minute, 0, 0);
+  return Date.UTC(year, month - 1, day, hour - 7, minute, 0, 0);
 }
 
 function getReservationValidationMessage(dateValue, hourValue, minuteValue) {
-  const reservationDateTime = getReservationDateTime(dateValue, hourValue, minuteValue);
-  if (!reservationDateTime) {
+  const reservationTimestamp = getReservationHanoiTimestamp(dateValue, hourValue, minuteValue);
+  if (reservationTimestamp === null) {
     return "Vui lòng chọn đầy đủ ngày, giờ và phút đặt bàn.";
   }
 
-  const minimumReservationTime = new Date(Date.now() + 30 * 60 * 1000);
-  if (reservationDateTime <= minimumReservationTime) {
+  const minimumReservationTimestamp = Date.now() + 30 * 60 * 1000;
+  if (reservationTimestamp <= minimumReservationTimestamp) {
     return "Thời gian đặt bàn phải nằm trong tương lai và báo trước ít nhất 30 phút so với hiện tại.";
   }
 
