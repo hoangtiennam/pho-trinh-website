@@ -80,12 +80,15 @@ const reservationAdvanceNoticeMessage =
   "Quý khách vui lòng đặt bàn trước 30 phút và trước 20h30 để nhà hàng được phục vụ Quý khách chu đáo. Xin cảm ơn";
 const soldOutAfterHoursMessage =
   "Rất lấy làm tiếc vì nhà hàng đã hết món. Xin lỗi quý khách và hẹn gặp lại lần sau.";
+const reservationCapacityMessage =
+  "Phở Trịnh xin lỗi vì tại thời điểm quý khách đặt bàn trước không đủ số lượng bàn cho quý khách";
 const peakShippingRatePerKm = 8000;
 const peakMinimumShippingFee = 35000;
 const peakStartHour = 11;
 const peakEndHour = 13;
 const closingHour = 20;
 const closingMinute = 30;
+const maximumReservationBowls = 30;
 let deliveryDistanceKm = 0;
 
 function money(value) {
@@ -94,6 +97,10 @@ function money(value) {
 
 function getCartTotal() {
   return cart.reduce((sum, item) => sum + item.unitPrice * item.qty, 0);
+}
+
+function getCartItemCount() {
+  return cart.reduce((sum, item) => sum + item.qty, 0);
 }
 
 function getFulfillmentMethod() {
@@ -840,6 +847,11 @@ async function handleCheckout(event) {
 
   if (isDeliveryDistanceRejected()) {
     setOrderMessage(deliveryRejectedMessage, "error");
+    return;
+  }
+
+  if (isTableReservation() && getCartItemCount() > maximumReservationBowls) {
+    setOrderMessage(reservationCapacityMessage, "error");
     return;
   }
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = "pho-trinh-v19";
+const CACHE_NAME = "pho-trinh-v20";
 const APP_SHELL = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.webmanifest", "./assets/icon.svg"];
 
 self.addEventListener("install", (event) => {
